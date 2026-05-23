@@ -1,0 +1,2244 @@
+﻿<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Benj a bu toute l'eau de St André</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+      :root {
+        --bg: #020c12;
+        --deep: #041520;
+        --teal: #00d4c8;
+        --blue: #0077ff;
+        --cyan: #00f0ff;
+        --warn: #ff9c3a;
+        --bad: #ff4060;
+        --good: #00e5a0;
+        --muted: #4a7a8a;
+        --text: #e8f4f8;
+        --glass: rgba(0, 212, 200, 0.06);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: "DM Sans", sans-serif;
+        overflow: hidden;
+        height: 100vh;
+        cursor: none;
+      }
+
+      .cursor {
+        position: fixed;
+        width: 10px;
+        height: 10px;
+        background: var(--cyan);
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 9999;
+        transform: translate(-50%, -50%);
+        mix-blend-mode: screen;
+      }
+      .cursor-ring {
+        position: fixed;
+        width: 34px;
+        height: 34px;
+        border: 1.5px solid var(--teal);
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 9998;
+        transform: translate(-50%, -50%);
+        transition:
+          transform 0.15s ease,
+          width 0.2s,
+          height 0.2s,
+          opacity 0.2s;
+        opacity: 0.5;
+      }
+
+      .slides {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      .slide {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: clamp(20px, 3.5vh, 52px) clamp(20px, 5vw, 80px);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.18s ease;
+        text-align: center;
+      }
+
+      .slide.active {
+        opacity: 1;
+        pointer-events: all;
+      }
+
+      .slide-chart {
+        padding: clamp(14px, 2vh, 28px) clamp(16px, 4vw, 60px)
+          clamp(52px, 7vh, 76px);
+      }
+
+      .water-bg {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        overflow: hidden;
+      }
+      .water-bg::before {
+        content: "";
+        position: absolute;
+        inset: -50%;
+        background:
+          radial-gradient(
+            ellipse 80% 50% at 20% 60%,
+            rgba(0, 119, 255, 0.12) 0%,
+            transparent 60%
+          ),
+          radial-gradient(
+            ellipse 60% 70% at 80% 30%,
+            rgba(0, 212, 200, 0.09) 0%,
+            transparent 60%
+          ),
+          radial-gradient(
+            ellipse 100% 80% at 50% 100%,
+            rgba(0, 240, 255, 0.04) 0%,
+            transparent 50%
+          );
+        animation: waterMove 12s ease-in-out infinite alternate;
+      }
+      @keyframes waterMove {
+        0% {
+          transform: translate(0, 0) rotate(0deg);
+        }
+        100% {
+          transform: translate(-3%, 2%) rotate(1deg);
+        }
+      }
+
+      .bubble {
+        position: fixed;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle at 35% 35%,
+          rgba(0, 240, 255, 0.32),
+          rgba(0, 119, 255, 0.07)
+        );
+        border: 1px solid rgba(0, 240, 255, 0.22);
+        animation: rise linear infinite;
+        pointer-events: none;
+        z-index: 0;
+      }
+      @keyframes rise {
+        0% {
+          transform: translateY(110vh);
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        90% {
+          opacity: 0.45;
+        }
+        100% {
+          transform: translateY(-10vh) translateX(18px);
+          opacity: 0;
+        }
+      }
+
+      .grid-overlay {
+        position: fixed;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(0, 212, 200, 0.032) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0, 212, 200, 0.032) 1px, transparent 1px);
+        background-size: 60px 60px;
+        z-index: 0;
+        pointer-events: none;
+      }
+      .nav {
+        position: fixed;
+        bottom: 28px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        background: rgba(2, 12, 18, 0.82);
+        border: 1px solid rgba(0, 212, 200, 0.18);
+        padding: 10px 22px;
+        border-radius: 50px;
+        backdrop-filter: blur(12px);
+      }
+      .nav-btn {
+        background: none;
+        border: 1.5px solid var(--muted);
+        color: var(--muted);
+        padding: 6px 16px;
+        border-radius: 20px;
+        cursor: none;
+        font-family: "Space Mono", monospace;
+        font-size: clamp(12px, 1.2vw, 16px);
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        transition: all 0.2s;
+      }
+      .nav-btn:hover {
+        border-color: var(--teal);
+        color: var(--teal);
+        background: rgba(0, 212, 200, 0.07);
+      }
+
+      .slide-counter {
+        font-family: "Space Mono", monospace;
+        font-size: clamp(13px, 1.3vw, 17px);
+        color: var(--muted);
+        letter-spacing: 2px;
+        min-width: 56px;
+        text-align: center;
+      }
+      .dot-nav {
+        display: flex;
+        gap: 5px;
+      }
+      .dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--muted);
+        transition:
+          background 0.2s,
+          transform 0.2s;
+        cursor: none;
+      }
+      .dot.active {
+        background: var(--teal);
+        transform: scale(1.5);
+      }
+
+      .slide > * {
+        position: relative;
+        z-index: 2;
+      }
+
+      /* ─── TYPOGRAPHY ─── */
+      .eyebrow {
+        font-family: "Space Mono", monospace;
+        font-size: clamp(14px, 1.6vw, 22px);
+        letter-spacing: 4px;
+        text-transform: uppercase;
+        color: var(--teal);
+        margin-bottom: 18px;
+        opacity: 0;
+        animation: fadeUp 0.6s 0.3s forwards;
+      }
+      .main-title {
+        font-family: "Bebas Neue", sans-serif;
+        font-size: clamp(70px, 11vw, 160px);
+        line-height: 0.9;
+        letter-spacing: 2px;
+        background: linear-gradient(
+          135deg,
+          #fff 30%,
+          var(--cyan) 70%,
+          var(--blue) 100%
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        opacity: 0;
+        animation: fadeUp 0.7s 0.5s forwards;
+        filter: drop-shadow(0 0 32px rgba(0, 240, 255, 0.26));
+      }
+      .subtitle {
+        font-size: clamp(18px, 2.2vw, 30px);
+        color: var(--muted);
+        margin-top: 16px;
+        font-weight: 300;
+        letter-spacing: 1px;
+        opacity: 0;
+        animation: fadeUp 0.6s 0.8s forwards;
+      }
+      .divider-line {
+        width: 100px;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--teal),
+          transparent
+        );
+        margin: 20px auto;
+        opacity: 0;
+        animation: fadeUp 0.6s 0.7s forwards;
+      }
+      .title-meta {
+        display: flex;
+        gap: 24px;
+        margin-top: 24px;
+        opacity: 0;
+        animation: fadeUp 0.6s 1s forwards;
+      }
+      .meta-tag {
+        font-family: "Space Mono", monospace;
+        font-size: 11px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--muted);
+        border: 1px solid rgba(0, 212, 200, 0.2);
+        padding: 4px 12px;
+        border-radius: 20px;
+      }
+
+      .section-title {
+        font-family: "Bebas Neue", sans-serif;
+        font-size: clamp(38px, 5.5vw, 80px);
+        letter-spacing: 2px;
+        color: var(--teal);
+        margin-bottom: 10px;
+      }
+      .section-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        background: rgba(0, 212, 200, 0.07);
+        border: 1px solid rgba(0, 212, 200, 0.2);
+        padding: 5px 13px;
+        border-radius: 20px;
+        font-family: "Space Mono", monospace;
+        font-size: clamp(12px, 1.2vw, 17px);
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--teal);
+        margin-bottom: 16px;
+      }
+      .badge-dot {
+        width: 5px;
+        height: 5px;
+        background: var(--teal);
+        border-radius: 50%;
+        animation: blink 1.5s ease-in-out infinite;
+      }
+      @keyframes blink {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.2;
+        }
+      }
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(16px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .slide-body-text {
+        font-size: clamp(17px, 2vw, 28px);
+        color: #9ab8c5;
+        line-height: 1.8;
+        max-width: min(84vw, 1000px);
+        margin: 0 auto;
+      }
+
+      .progress-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 2px;
+        background: linear-gradient(90deg, var(--teal), var(--cyan));
+        transition: width 0.5s ease;
+        z-index: 100;
+        box-shadow: 0 0 7px var(--teal);
+      }
+      .key-hint {
+        position: fixed;
+        top: 18px;
+        right: 22px;
+        font-family: "Space Mono", monospace;
+        font-size: clamp(11px, 1.1vw, 15px);
+        letter-spacing: 2px;
+        color: rgba(74, 122, 138, 0.32);
+        z-index: 100;
+      }
+
+      /* ─── SLIDE 2 ─── */
+      .problem-box {
+        border: 1px solid rgba(0, 212, 200, 0.28);
+        background: var(--glass);
+        padding: 34px 46px;
+        border-radius: 4px;
+        max-width: min(88vw, 1080px);
+        position: relative;
+        overflow: hidden;
+        backdrop-filter: blur(8px);
+      }
+      .problem-box::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: var(--teal);
+      }
+      .question-text {
+        font-family: "Bebas Neue", sans-serif;
+        font-size: clamp(28px, 4vw, 62px);
+        line-height: 1.15;
+        letter-spacing: 1px;
+        margin-bottom: 16px;
+        color: #fff;
+      }
+      .question-text span {
+        color: var(--cyan);
+      }
+
+      /* ─── SLIDE 3 — PROTOCOLE ─── */
+      .protocol-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: clamp(10px, 1.2vw, 18px);
+        max-width: min(93vw, 1240px);
+        width: 100%;
+      }
+      .proto-card {
+        background: rgba(0, 20, 32, 0.65);
+        border: 1px solid rgba(0, 212, 200, 0.13);
+        border-radius: 4px;
+        padding: clamp(14px, 1.8vw, 26px);
+        text-align: left;
+        position: relative;
+        overflow: hidden;
+        transition:
+          border-color 0.3s,
+          transform 0.3s;
+      }
+      .proto-card:hover {
+        border-color: var(--teal);
+        transform: translateY(-3px);
+      }
+      .proto-card::before {
+        content: attr(data-num);
+        position: absolute;
+        right: 13px;
+        top: 12px;
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 42px;
+        color: rgba(0, 212, 200, 0.07);
+        line-height: 1;
+      }
+      .proto-title {
+        font-family: "Space Mono", monospace;
+        font-size: clamp(12px, 1.3vw, 18px);
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--teal);
+        margin-bottom: 7px;
+      }
+      .proto-body {
+        font-size: clamp(15px, 1.7vw, 23px);
+        color: #9ab8c5;
+        line-height: 1.6;
+      }
+
+      /* ─── SLIDE 4 — SITES ─── */
+      .sites-layout {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: clamp(8px, 1.1vw, 16px);
+        max-width: min(96vw, 1500px);
+        width: 100%;
+      }
+      .site-card {
+        background: rgba(0, 20, 32, 0.7);
+        border: 1px solid rgba(0, 212, 200, 0.12);
+        border-radius: 4px;
+        padding: 16px 13px;
+        text-align: center;
+        transition: all 0.3s;
+      }
+      .site-card:hover {
+        border-color: rgba(0, 212, 200, 0.42);
+        transform: translateY(-3px);
+      }
+      .site-name {
+        font-family: "Space Mono", monospace;
+        font-size: clamp(12px, 1.3vw, 17px);
+        letter-spacing: 1px;
+        color: var(--teal);
+        text-transform: uppercase;
+        margin-bottom: 6px;
+      }
+      .site-desc {
+        font-size: clamp(14px, 1.5vw, 20px);
+        color: var(--muted);
+        line-height: 1.5;
+      }
+      .filtered-badge {
+        display: inline-block;
+        background: rgba(0, 229, 160, 0.12);
+        border: 1px solid var(--good);
+        color: var(--good);
+        font-family: "Space Mono", monospace;
+        font-size: clamp(9px, 1vw, 12px);
+        letter-spacing: 1px;
+        padding: 2px 7px;
+        border-radius: 20px;
+        margin-top: 6px;
+        text-transform: uppercase;
+      }
+
+      /* ─── SLIDE 5 — PARAMETRES ─── */
+      .param-list {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: clamp(9px, 1.2vw, 16px);
+        max-width: min(90vw, 1160px);
+        width: 100%;
+      }
+      .param-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        background: rgba(0, 20, 32, 0.6);
+        border: 1px solid rgba(0, 212, 200, 0.12);
+        padding: 14px 18px;
+        border-radius: 4px;
+        text-align: left;
+        transition: border-color 0.2s;
+      }
+      .param-item:hover {
+        border-color: rgba(0, 212, 200, 0.36);
+      }
+      .param-label {
+        font-family: "Space Mono", monospace;
+        font-size: clamp(12px, 1.3vw, 17px);
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: var(--teal);
+        margin-bottom: 3px;
+      }
+      .param-desc {
+        font-size: clamp(15px, 1.7vw, 22px);
+        color: var(--muted);
+        line-height: 1.5;
+      }
+      .param-measured {
+        display: inline-block;
+        background: rgba(0, 229, 160, 0.11);
+        border: 1px solid var(--good);
+        color: var(--good);
+        font-family: "Space Mono", monospace;
+        font-size: clamp(9px, 1vw, 12px);
+        letter-spacing: 1px;
+        padding: 2px 7px;
+        border-radius: 20px;
+        margin-top: 5px;
+        text-transform: uppercase;
+      }
+      .param-source {
+        display: inline-block;
+        background: rgba(0, 212, 200, 0.06);
+        border: 1px solid rgba(0, 212, 200, 0.28);
+        color: var(--teal);
+        font-family: "Space Mono", monospace;
+        font-size: clamp(9px, 1vw, 12px);
+        letter-spacing: 1px;
+        padding: 2px 7px;
+        border-radius: 20px;
+        margin-top: 5px;
+        text-transform: uppercase;
+      }
+
+      /* ─── SLIDE 6 — pH chart ─── */
+      #phBarChart,
+      #mainChart {
+        height: 200px !important;
+      }
+      .ph-measure-note {
+        background: rgba(0, 229, 160, 0.06);
+        border: 1px solid rgba(0, 229, 160, 0.28);
+        border-radius: 4px;
+        padding: 10px 18px;
+        font-family: "Space Mono", monospace;
+        font-size: clamp(12px, 1.3vw, 16px);
+        color: var(--good);
+        letter-spacing: 1px;
+        margin-bottom: 12px;
+        max-width: min(90vw, 1180px);
+        width: 100%;
+        text-align: left;
+      }
+
+      /* ─── TABLEAU ─── */
+      .data-table-wrap {
+        max-width: min(94vw, 1380px);
+        width: 100%;
+        overflow-x: auto;
+      }
+      table.data-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: clamp(13px, 1.4vw, 17px);
+      }
+      table.data-table th {
+        font-family: "Space Mono", monospace;
+        font-size: clamp(11px, 1.2vw, 15px);
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--teal);
+        padding: 9px 12px;
+        border-bottom: 1px solid rgba(0, 212, 200, 0.22);
+        background: rgba(0, 212, 200, 0.05);
+        text-align: center;
+        white-space: nowrap;
+      }
+      table.data-table th:first-child {
+        text-align: left;
+      }
+      table.data-table td {
+        padding: 8px 12px;
+        border-bottom: 1px solid rgba(0, 212, 200, 0.05);
+        color: #c8dde6;
+        text-align: center;
+        font-family: "Space Mono", monospace;
+        font-size: clamp(13px, 1.4vw, 18px);
+      }
+      table.data-table td:first-child {
+        text-align: left;
+        color: var(--text);
+        font-family: "DM Sans", sans-serif;
+        font-size: clamp(14px, 1.5vw, 20px);
+        font-weight: 500;
+      }
+      table.data-table tr:hover td {
+        background: rgba(0, 212, 200, 0.04);
+      }
+      .val-good {
+        color: var(--good) !important;
+      }
+      .val-warn {
+        color: var(--warn) !important;
+      }
+      .val-bad {
+        color: var(--bad) !important;
+      }
+      .val-measured {
+        font-weight: 700;
+        text-decoration: underline;
+        text-decoration-style: dashed;
+        text-decoration-color: rgba(0, 229, 160, 0.5);
+        cursor: help;
+      }
+      .table-legend {
+        display: flex;
+        gap: 18px;
+        flex-wrap: wrap;
+        margin-top: 11px;
+        font-family: "Space Mono", monospace;
+        font-size: clamp(11px, 1.2vw, 15px);
+        color: var(--muted);
+        letter-spacing: 1px;
+      }
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .legend-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+      }
+
+      /* ─── GRAPHIQUE INTERACTIF ─── */
+      .chart-controls {
+        display: flex;
+        gap: 9px;
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .ctrl-btn {
+        background: rgba(0, 20, 32, 0.7);
+        border: 1px solid rgba(0, 212, 200, 0.2);
+        color: var(--muted);
+        font-family: "Space Mono", monospace;
+        font-size: clamp(13px, 1.4vw, 18px);
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        padding: 6px 15px;
+        border-radius: 20px;
+        cursor: none;
+        transition: all 0.2s;
+      }
+      .ctrl-btn:hover,
+      .ctrl-btn.active {
+        border-color: var(--teal);
+        color: var(--teal);
+        background: rgba(0, 212, 200, 0.08);
+      }
+      .chart-container {
+        background: rgba(0, 20, 32, 0.7);
+        border: 1px solid rgba(0, 212, 200, 0.13);
+        border-radius: 4px;
+        padding: 14px 18px;
+        max-width: min(93vw, 1240px);
+        width: 100%;
+        position: relative;
+      }
+      .chart-note {
+        font-family: "Space Mono", monospace;
+        font-size: 8px;
+        color: rgba(0, 229, 160, 0.55);
+        letter-spacing: 1px;
+        margin-top: 9px;
+        text-align: right;
+      }
+
+      /* ─── FILTRATION ─── */
+      .compare-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        max-width: min(90vw, 1160px);
+        width: 100%;
+      }
+      .compare-col {
+        background: rgba(0, 20, 32, 0.7);
+        border: 1px solid rgba(0, 212, 200, 0.13);
+        border-radius: 4px;
+        padding: 20px;
+      }
+      .compare-col.filtered {
+        border-color: rgba(0, 229, 160, 0.26);
+      }
+      .col-header {
+        font-family: "Space Mono", monospace;
+        font-size: clamp(11px, 1.2vw, 16px);
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        margin-bottom: 13px;
+        padding-bottom: 9px;
+        border-bottom: 1px solid rgba(0, 212, 200, 0.09);
+      }
+      .col-header.normal {
+        color: var(--teal);
+      }
+      .col-header.filtered-label {
+        color: var(--good);
+      }
+      .compare-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 7px 0;
+        border-bottom: 1px solid rgba(0, 212, 200, 0.05);
+        font-size: clamp(15px, 1.7vw, 22px);
+      }
+      .compare-site {
+        color: var(--muted);
+        font-family: "DM Sans", sans-serif;
+      }
+      .compare-val {
+        font-family: "Space Mono", monospace;
+        font-size: clamp(14px, 1.5vw, 20px);
+      }
+      .compare-val.up {
+        color: var(--bad);
+      }
+      .compare-val.down {
+        color: var(--good);
+      }
+      .compare-val.neutral {
+        color: var(--text);
+      }
+
+      /* ─── SAINT-ANDRÉ ─── */
+      .sa-data-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 13px;
+        max-width: min(90vw, 1180px);
+        width: 100%;
+        margin-top: 14px;
+      }
+      .sa-stat {
+        background: rgba(0, 20, 32, 0.7);
+        border: 1px solid rgba(0, 212, 200, 0.13);
+        border-radius: 4px;
+        padding: 18px;
+        text-align: center;
+      }
+      .sa-stat .val {
+        font-family: "Bebas Neue", sans-serif;
+        font-size: clamp(44px, 5.5vw, 72px);
+        line-height: 1;
+        margin-bottom: 5px;
+      }
+      .sa-stat .param {
+        font-family: "Space Mono", monospace;
+        font-size: clamp(11px, 1.2vw, 16px);
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .sa-stat .norm {
+        font-size: clamp(13px, 1.4vw, 18px);
+        color: rgba(74, 122, 138, 0.55);
+        margin-top: 3px;
+        font-family: "Space Mono", monospace;
+      }
+
+      /* ─── AUTRES PISTES ─── */
+      .pistes-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: clamp(10px, 1.3vw, 18px);
+        max-width: min(93vw, 1240px);
+        width: 100%;
+        margin-top: 14px;
+      }
+      .piste-card {
+        background: rgba(0, 20, 32, 0.45);
+        border: 1px dashed rgba(0, 212, 200, 0.16);
+        border-radius: 4px;
+        padding: 26px 18px;
+        min-height: 110px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        transition: border-color 0.3s;
+      }
+      .piste-card:hover {
+        border-color: rgba(0, 212, 200, 0.38);
+      }
+      .piste-num {
+        font-family: "Space Mono", monospace;
+        font-size: clamp(12px, 1.3vw, 17px);
+        letter-spacing: 2px;
+        color: var(--muted);
+        text-transform: uppercase;
+      }
+      .piste-placeholder {
+        font-family: "Space Mono", monospace;
+        font-size: clamp(12px, 1.3vw, 17px);
+        color: rgba(74, 122, 138, 0.3);
+        letter-spacing: 1px;
+        font-style: italic;
+      }
+
+      /* ─── ANALYSE ─── */
+      .analysis-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: clamp(12px, 1.4vw, 22px);
+        max-width: min(92vw, 1280px);
+        width: 100%;
+      }
+      .analysis-card {
+        background: rgba(0, 20, 32, 0.7);
+        border: 1px solid rgba(0, 212, 200, 0.13);
+        border-radius: 4px;
+        padding: clamp(14px, 1.8vw, 26px);
+        text-align: left;
+      }
+      .analysis-title {
+        font-family: "Space Mono", monospace;
+        font-size: clamp(12px, 1.3vw, 16px);
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--teal);
+        margin-bottom: 11px;
+        padding-bottom: 7px;
+        border-bottom: 1px solid rgba(0, 212, 200, 0.09);
+      }
+      .analysis-list {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .analysis-list li {
+        display: flex;
+        gap: 9px;
+        font-size: clamp(15px, 1.7vw, 22px);
+        color: #9ab8c5;
+        line-height: 1.5;
+      }
+      .analysis-list li::before {
+        content: "—";
+        color: var(--teal);
+        flex-shrink: 0;
+      }
+
+      /* ─── CONCLUSION ─── */
+      .conclusion-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: clamp(10px, 1.3vw, 20px);
+        max-width: min(92vw, 1280px);
+        width: 100%;
+        margin-top: 16px;
+      }
+      .conclu-card {
+        background: rgba(0, 20, 32, 0.7);
+        border: 1px solid rgba(0, 212, 200, 0.13);
+        border-radius: 4px;
+        padding: 22px 16px;
+        position: relative;
+      }
+      .conclu-num {
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 52px;
+        color: rgba(0, 212, 200, 0.08);
+        position: absolute;
+        top: 7px;
+        right: 13px;
+        line-height: 1;
+      }
+      .conclu-title {
+        font-family: "Space Mono", monospace;
+        font-size: clamp(12px, 1.3vw, 17px);
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--teal);
+        margin-bottom: 8px;
+      }
+      .conclu-body {
+        font-size: clamp(15px, 1.7vw, 22px);
+        color: #9ab8c5;
+        line-height: 1.6;
+        text-align: left;
+      }
+
+      /* ─── FIN ─── */
+      .end-big {
+        font-family: "Bebas Neue", sans-serif;
+        font-size: clamp(56px, 10vw, 130px);
+        letter-spacing: 3px;
+        background: linear-gradient(135deg, var(--cyan), var(--teal));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        filter: drop-shadow(0 0 26px rgba(0, 212, 200, 0.35));
+        animation: fadeUp 0.7s 0.3s both;
+      }
+      .end-sub {
+        font-family: "Space Mono", monospace;
+        font-size: clamp(16px, 2vw, 26px);
+        color: var(--muted);
+        letter-spacing: 2px;
+        margin-top: 13px;
+        animation: fadeUp 0.7s 0.6s both;
+      }
+      .thanks-line {
+        margin-top: 26px;
+        font-size: clamp(15px, 1.8vw, 22px);
+        color: #4a7a8a;
+        animation: fadeUp 0.7s 0.9s both;
+      }
+      .thanks-line span {
+        color: var(--teal);
+      }
+
+      @media (max-width: 700px) {
+        .sites-layout {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .protocol-grid,
+        .analysis-layout,
+        .compare-grid,
+        .conclusion-grid,
+        .pistes-grid,
+        .sa-data-grid {
+          grid-template-columns: 1fr;
+        }
+        .param-list {
+          grid-template-columns: 1fr;
+        }
+        .slide {
+          padding: 26px 16px;
+        }
+      }
+      /* ─── CHART FULLSCREEN MODAL ─── */
+      .chart-container {
+        cursor: zoom-in !important;
+      }
+      .chart-container canvas {
+        pointer-events: none;
+      }
+      .chart-zoom-hint {
+        font-family: "Space Mono", monospace;
+        font-size: clamp(9px, 0.9vw, 12px);
+        color: rgba(0, 212, 200, 0.28);
+        letter-spacing: 1px;
+        text-align: center;
+        margin-top: 7px;
+      }
+      #chart-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 500;
+        background: rgba(2, 8, 16, 0.95);
+        backdrop-filter: blur(10px);
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+      }
+      #chart-modal.open {
+        display: flex;
+      }
+      #chart-modal-inner {
+        background: rgba(0, 20, 32, 0.97);
+        border: 1px solid rgba(0, 212, 200, 0.3);
+        border-radius: 6px;
+        padding: 36px 36px 28px;
+        width: min(94vw, 1480px);
+        position: relative;
+      }
+      #chart-modal-canvas {
+        width: 100% !important;
+        height: clamp(340px, 56vh, 680px) !important;
+      }
+      #chart-modal-label {
+        font-family: "Space Mono", monospace;
+        font-size: clamp(10px, 1.1vw, 14px);
+        color: var(--teal);
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        margin-bottom: 16px;
+      }
+      #chart-modal-close {
+        position: absolute;
+        top: 14px;
+        right: 18px;
+        font-family: "Space Mono", monospace;
+        font-size: clamp(10px, 1vw, 13px);
+        color: var(--muted);
+        letter-spacing: 2px;
+        cursor: pointer;
+        padding: 4px 12px;
+        border: 1px solid rgba(0, 212, 200, 0.2);
+        border-radius: 20px;
+        transition: all 0.2s;
+      }
+      #chart-modal-close:hover {
+        color: var(--teal);
+        border-color: var(--teal);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="cursor" id="cursor"></div>
+    <div class="cursor-ring" id="cursorRing"></div>
+    <div class="water-bg"></div>
+    <div class="grid-overlay"></div>
+    <div class="progress-bar" id="progressBar"></div>
+    <div class="key-hint">fleches pour naviguer</div>
+    <div id="bubblesContainer"></div>
+
+    <div class="slides" id="slides">
+      <!-- 1 TITRE -->
+      <div class="slide active" id="s1">
+        <div class="eyebrow">
+          Projet Experimental et Numérique · Enseignement Scientifique · 1ère
+        </div>
+        <div class="main-title">QUALITÉ<br />DE L'EAU</div>
+        <div class="divider-line"></div>
+        <div class="subtitle">
+          Analyse comparative de l'eau à Saint-Leu et Saint-Andre
+        </div>
+        <div class="title-meta">
+          <span class="meta-tag">Physique-Chimie</span>
+
+          <span class="meta-tag">2025-2026</span>
+        </div>
+      </div>
+
+      <!-- 2 PROBLEMATIQUE -->
+      <div class="slide" id="s2">
+        <div class="section-badge">
+          <span class="badge-dot"></span>Problématique
+        </div>
+        <div class="section-title">LA QUESTION</div>
+        <div class="problem-box">
+          <div class="question-text">
+            La qualité microbiologique et chimique de l'eau varie t-elle selon
+            les <span>quartiers</span> de Saint-Leu et Saint-Andre,<br />
+            et la filtration domestique permet-elle d'obtenir des
+            <span>standards sanitaires</span> optimaux&nbsp;?
+          </div>
+          <p style="font-size: 20px; color: #9ab8c5; line-height: 1.8">
+            Partant de l'observation que les caracteristiques de l'eau peuvent
+            varier selon les secteurs et les usages.
+          </p>
+        </div>
+      </div>
+      <!-- 3 AUTRES PISTES -->
+      <div class="slide" id="s-pistes">
+        <div class="section-badge">
+          <span class="badge-dot"></span>Perspectives
+        </div>
+        <div class="section-title">AUTRES PISTES ENVISAGÉES</div>
+        <p class="slide-body-text" style="font-size: 17px; margin-bottom: 12px">
+          Idees explorées et non retenues pour ce projet principal.
+        </p>
+        <div class="pistes-grid">
+          <div class="piste-card">
+            <div class="piste-num">Piste 01</div>
+            <div
+              style="
+                font-size: clamp(14px, 1.5vw, 19px);
+                color: #9ab8c5;
+                line-height: 1.5;
+              "
+            >
+              Bactéries et conditions extrèmes : survie sous
+              pression/température élevées par hibernation bactérienne
+            </div>
+          </div>
+          <div class="piste-card">
+            <div class="piste-num">Piste 02</div>
+            <div
+              style="
+                font-size: clamp(14px, 1.5vw, 19px);
+                color: #9ab8c5;
+                line-height: 1.5;
+              "
+            >
+              Bactéries sous conditions atmospheriques de Mars
+            </div>
+          </div>
+          <div class="piste-card">
+            <div class="piste-num">Piste 03</div>
+            <div
+              style="
+                font-size: clamp(14px, 1.5vw, 19px);
+                color: #9ab8c5;
+                line-height: 1.5;
+              "
+            >
+              Comportement de fourmis en vivarium selon la température
+            </div>
+          </div>
+          <div class="piste-card">
+            <div class="piste-num">Piste 04</div>
+            <div
+              style="
+                font-size: clamp(14px, 1.5vw, 19px);
+                color: #9ab8c5;
+                line-height: 1.5;
+              "
+            >
+              AirTag sur un poisson en aquarium puis en mer : mesure du bonheur
+              relatif par suivi GPS
+            </div>
+          </div>
+          <div class="piste-card" style="border-color: rgba(0, 229, 160, 0.3)">
+            <div class="piste-num" style="color: var(--good)">
+              Piste retenue ✓
+            </div>
+            <div
+              style="
+                font-size: clamp(14px, 1.5vw, 19px);
+                color: var(--good);
+                line-height: 1.5;
+              "
+            >
+              Qualite de l'eau par quartier (Saint-Leu / Saint-Andre) : Le mythe
+              de Saint André
+            </div>
+          </div>
+          <div class="piste-card">
+            <div class="piste-num">Note</div>
+            <div
+              style="
+                font-size: clamp(13px, 1.4vw, 17px);
+                color: var(--muted);
+                line-height: 1.5;
+                font-style: italic;
+              "
+            >
+              Les premieres pistes avaient des hypotheses trop evidentes ou
+              etaient trop complexes a realiser experimentalement.
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 4 PROTOCOLE -->
+      <div class="slide" id="s3">
+        <div class="section-badge">
+          <span class="badge-dot"></span>Demarche scientifique
+        </div>
+        <div class="section-title">PROTOCOLE</div>
+        <div class="protocol-grid">
+          <div class="proto-card" data-num="01">
+            <div class="proto-title">Prélèvement</div>
+            <div class="proto-body">
+              Collecte d'échantillons d'eau sur 7 sites de Saint-Leu et ses
+              environs, ainsi que l'eau du lycée. Conservation en bouteilles
+              étiquetées
+            </div>
+          </div>
+          <div class="proto-card" data-num="02">
+            <div class="proto-title">Préparation</div>
+            <div class="proto-body">
+              Versement de 40 mL de chaque échantillon dans un becher distinct.
+              Eau distillée utilisée comme référence de contrôle.
+            </div>
+          </div>
+          <div class="proto-card" data-num="03">
+            <div class="proto-title">Mesure du pH</div>
+            <div class="proto-body">
+              Insertion du pH-metre dans chaque becher. Lecture de la valeur
+              après 3 minutes de stabilisation. Mesure de la température
+              simultanément.
+            </div>
+          </div>
+          <div class="proto-card" data-num="04">
+            <div class="proto-title">Filtration</div>
+            <div class="proto-body">
+              Tests comparatifs avant et après filtration pour les échantillons
+              Stella et Lycée. Comparaison de l'effet sur le pH mesuré.
+            </div>
+          </div>
+          <div class="proto-card" data-num="05">
+            <div class="proto-title">Traitement numérique</div>
+            <div class="proto-body">
+              Saisie des données dans Excel et traçage des graphiques.
+            </div>
+          </div>
+          <div class="proto-card" data-num="06">
+            <div class="proto-title">Analyse critique</div>
+            <div class="proto-body">Discussion des limites du protocole</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 SITES -->
+      <div class="slide" id="s4">
+        <div class="section-badge"><span class="badge-dot"></span>Terrain</div>
+        <div class="section-title">NOS SITES DE PRÉLÈVEMENT</div>
+        <div class="sites-layout">
+          <div class="site-card">
+            <div class="site-name">Pointe des Chateaux</div>
+            <div class="site-desc">
+              Zone balnéaire de Saint-Leu, eau du reseau municipal.
+            </div>
+          </div>
+          <div class="site-card">
+            <div class="site-name">L'Étang-Saint-Leu</div>
+            <div class="site-desc">
+              Les hauts de Saint-Leu, eau du reseau municipal.
+            </div>
+          </div>
+          <div class="site-card">
+            <div class="site-name">Stella (brut)</div>
+            <div class="site-desc">
+              Quartier Stella, eau du robinet, a proximité du lycée.
+            </div>
+          </div>
+          <div class="site-card">
+            <div class="site-name">Stella (filtrée)</div>
+            <div class="site-desc">
+              Même source que Stella brut, passée par un filtre domestique.
+            </div>
+            <span class="filtered-badge">filtrée</span>
+          </div>
+          <div class="site-card">
+            <div class="site-name">Lycée (brut)</div>
+            <div class="site-desc">
+              Eau des tuyaux sales des salles de TP du lycée.
+            </div>
+          </div>
+          <div class="site-card">
+            <div class="site-name">Lycée (filtrée)</div>
+            <div class="site-desc">Eau des fontaines filtrées du lycée.</div>
+            <span class="filtered-badge">filtrée</span>
+          </div>
+          <div class="site-card">
+            <div class="site-name">Saint-André</div>
+            <div class="site-desc">
+              On a galéré à trouver autant d'eau (40mL) pour l'expérience.
+            </div>
+          </div>
+          <div class="site-card">
+            <div class="site-name">Eau distillée</div>
+            <div class="site-desc">
+              Eau pure de référence, utilisée pour valider les mesures.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5 PARAMETRES -->
+      <div class="slide" id="s5">
+        <div class="section-badge"><span class="badge-dot"></span>Mesures</div>
+        <div class="section-title">PARAMÈTRES ÉTUDIÉS</div>
+        <div class="param-list">
+          <div class="param-item">
+            <div>
+              <div class="param-label">pH</div>
+              <div class="param-desc">
+                Acidité/basicité de l'eau. Norme francaise : 6,5 - 8,5.
+                Paramètre central de notre expérimentation.
+              </div>
+              <span class="param-measured">Mesure directe en classe</span>
+            </div>
+          </div>
+          <div class="param-item">
+            <div>
+              <div class="param-label">Température</div>
+              <div class="param-desc">
+                Mesurée simultanément au pH via le pH-metre.
+              </div>
+              <span class="param-measured">Mesure directe en classe</span>
+            </div>
+          </div>
+
+          <div class="param-item">
+            <div>
+              <div class="param-label">Nitrates</div>
+              <div class="param-desc">
+                Marqueur de pollution agricole. Norme &lt; 50 mg/L. Saint-André
+                est entouré de cultures de canne a sucre.
+              </div>
+              <span class="param-source"
+                >Données ARS Reunion · non mesuré par nous</span
+              >
+            </div>
+          </div>
+          <div class="param-item">
+            <div>
+              <div class="param-label">Chlore résiduel</div>
+              <div class="param-desc">
+                Désinfection du réseau. Norme : 0,1 - 0,5 mg/L. La filtration
+                devrait réduire significativement ce paramètre.
+              </div>
+              <span class="param-source"
+                >Données ARS Reunion · non mesuré par nous
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6 PH MESURE -->
+      <div class="slide slide-chart" id="s6">
+        <div class="section-badge">
+          <span class="badge-dot"></span>Résultats — mesures expérimentales
+        </div>
+        <div class="section-title">pH MESURÉ PAR SITE</div>
+        <div
+          class="chart-container"
+          style="max-width: 1200px"
+          style="max-height: 800px"
+          onclick="if (phBarBuilt) openChartModal(true);"
+        >
+          <canvas id="phBarChart"></canvas>
+          <div class="chart-zoom-hint">Cliquez pour agrandir</div>
+          <div class="chart-note">
+            Traits pointillés = limites des normes françaises (6,5 et 8,5)
+          </div>
+        </div>
+      </div>
+
+      <!-- 7 TABLEAU COMPLET -->
+      <div class="slide" id="s7">
+        <div class="section-badge">
+          <span class="badge-dot"></span>Données complètes
+        </div>
+        <div class="section-title">TABLEAU COMPARATIF</div>
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Site</th>
+                <th>pH</th>
+                <th>Temp. (°C)</th>
+                <th>Conductivite (uS/cm)</th>
+                <th>Nitrates (mg/L)</th>
+                <th>Chlore (mg/L)</th>
+                <th>Statut pH</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Pointe des Chateaux</td>
+                <td
+                  class="val-warn val-measured"
+                  title="Valeur mesuree en classe"
+                >
+                  6.7
+                </td>
+                <td class="val-measured" title="Valeur mesuree en classe">
+                  26.8
+                </td>
+                <td style="color: var(--muted); font-style: italic">—</td>
+                <td style="color: var(--muted); font-style: italic">—</td>
+                <td style="color: var(--muted); font-style: italic">—</td>
+                <td class="val-good">Conforme</td>
+              </tr>
+              <tr>
+                <td>L'Étang-Saint-Leu</td>
+                <td
+                  class="val-good val-measured"
+                  title="Valeur mesuree en classe"
+                >
+                  7.4
+                </td>
+                <td class="val-measured" title="Valeur mesuree en classe">
+                  25.8
+                </td>
+                <td style="color: var(--muted); font-style: italic">—</td>
+                <td style="color: var(--muted); font-style: italic">—</td>
+                <td style="color: var(--muted); font-style: italic">—</td>
+                <td class="val-good">Conforme</td>
+              </tr>
+              <tr>
+                <td>Stella (brut)</td>
+                <td
+                  class="val-good val-measured"
+                  title="Valeur mesuree en classe"
+                >
+                  7.9
+                </td>
+                <td class="val-measured" title="Valeur mesuree en classe">
+                  27.2
+                </td>
+                <td style="color: var(--muted); font-style: italic">—</td>
+                <td style="color: var(--muted); font-style: italic">—</td>
+                <td style="color: var(--muted); font-style: italic">—</td>
+                <td class="val-good">Conforme</td>
+              </tr>
+              <tr>
+                <td>Stella (filtrée)</td>
+                <td
+                  class="val-good val-measured"
+                  title="Valeur mesuree en classe"
+                >
+                  7.6
+                </td>
+                <td class="val-measured" title="Valeur mesuree en classe">
+                  26.6
+                </td>
+                <td style="color: var(--muted); font-style: italic">—</td>
+                <td style="color: var(--muted); font-style: italic">—</td>
+                <td style="color: var(--muted); font-style: italic">—</td>
+                <td class="val-good">Conforme</td>
+              </tr>
+              <tr>
+                <td>Lycée (brut)</td>
+                <td
+                  class="val-good val-measured"
+                  title="Valeur mesuree en classe"
+                >
+                  7.8
+                </td>
+                <td class="val-measured" title="Valeur mesuree en classe">
+                  27.0
+                </td>
+                <td style="color: var(--muted); font-style: italic">—</td>
+                <td style="color: var(--muted); font-style: italic">—</td>
+                <td style="color: var(--muted); font-style: italic">—</td>
+                <td class="val-good">Conforme</td>
+              </tr>
+              <tr>
+                <td>Lycée (filtrée)</td>
+                <td
+                  class="val-good val-measured"
+                  title="Valeur mesuree en classe"
+                >
+                  7.8
+                </td>
+                <td class="val-measured" title="Valeur mesuree en classe">
+                  22.5
+                </td>
+                <td style="color: var(--muted); font-style: italic">—</td>
+                <td style="color: var(--muted); font-style: italic">—</td>
+                <td style="color: var(--muted); font-style: italic">—</td>
+                <td class="val-good">Conforme</td>
+              </tr>
+              <tr>
+                <td>Eau distillée (ref.)</td>
+                <td
+                  class="val-warn val-measured"
+                  title="Valeur mesuree en classe"
+                >
+                  6.3
+                </td>
+                <td class="val-measured" title="Valeur mesuree en classe">
+                  27.5
+                </td>
+                <td style="color: var(--muted); font-style: italic">—</td>
+                <td style="color: var(--muted); font-style: italic">—</td>
+                <td style="color: var(--muted); font-style: italic">—</td>
+                <td class="val-bad">Non conforme</td>
+              </tr>
+              <tr
+                style="
+                  background: rgba(0, 212, 200, 0.04);
+                  border-left: 2px solid var(--teal);
+                "
+              >
+                <td style="color: var(--teal); font-weight: 600">
+                  Saint-André ★
+                </td>
+                <td
+                  class="val-good val-measured"
+                  title="Valeur mesuree en classe"
+                >
+                  7.6
+                </td>
+                <td style="color: var(--muted); font-style: italic">—</td>
+                <td class="val-good" title="Source ARS Reunion">480</td>
+                <td class="val-good" title="Source ARS Reunion">12.0</td>
+                <td class="val-good" title="Source ARS Reunion">0.15</td>
+                <td class="val-good">Conforme ?</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="table-legend">
+            <div class="legend-item">
+              <div class="legend-dot" style="background: var(--good)"></div>
+              Conforme aux normes
+            </div>
+            <div class="legend-item">
+              <div class="legend-dot" style="background: var(--warn)"></div>
+              En limite
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 8 GRAPHIQUE INTERACTIF -->
+      <div class="slide slide-chart" id="s8">
+        <div class="section-badge">
+          <span class="badge-dot"></span>Visualisation interactive
+        </div>
+        <div class="section-title">GRAPHIQUE DES DONNÉES</div>
+        <div class="chart-controls" id="chartControls">
+          <button class="ctrl-btn active" data-param="ph">pH</button>
+          <button class="ctrl-btn" data-param="turb">Turbidité</button>
+          <button class="ctrl-btn" data-param="nit">Nitrates</button>
+          <button class="ctrl-btn" data-param="chl">Chlore</button>
+        </div>
+        <p
+          style="
+            font-family: &quot;Space Mono&quot;, monospace;
+            font-size: 8px;
+            color: var(--muted);
+            margin-bottom: 6px;
+            letter-spacing: 1px;
+            text-align: center;
+          "
+        >
+          pH mesuré en classe · turbidité, nitrates et chlore = données ARS
+          officielles
+        </p>
+        <div
+          class="chart-container"
+          onclick="if (mainChartInstance) openChartModal(false);"
+        >
+          <canvas id="mainChart"></canvas>
+          <div class="chart-zoom-hint">Cliquez pour agrandir</div>
+        </div>
+        <p
+          style="
+            font-family: &quot;Space Mono&quot;, monospace;
+            font-size: 8px;
+            color: var(--muted);
+            margin-top: 9px;
+            letter-spacing: 1px;
+          "
+        >
+          trait pointillé = norme
+        </p>
+      </div>
+
+      <!-- 9 FILTRATION -->
+      <div class="slide" id="s9">
+        <div class="section-badge">
+          <span class="badge-dot"></span>Filtration
+        </div>
+        <div class="section-title">EFFET DE LA FILTRATION</div>
+        <p class="slide-body-text" style="font-size: 11px; margin-bottom: 18px">
+          Comparaison avant / apres filtration pour Stella et le Lycée
+        </p>
+        <div class="compare-grid">
+          <div class="compare-col">
+            <div class="col-header normal">Eau brute (non filtrée)</div>
+            <div class="compare-row">
+              <span class="compare-site">Stella (pH)</span
+              ><span class="compare-val neutral">7.9</span>
+            </div>
+            <div class="compare-row">
+              <span class="compare-site">Lycée (pH)</span
+              ><span class="compare-val neutral">7.8</span>
+            </div>
+            <div class="compare-row">
+              <span class="compare-site">Stella (Chlore)</span
+              ><span class="compare-val neutral">0.33 mg/L</span>
+            </div>
+            <div class="compare-row">
+              <span class="compare-site">Lycée (Chlore)</span
+              ><span class="compare-val neutral">0.33 mg/L</span>
+            </div>
+          </div>
+          <div class="compare-col filtered">
+            <div class="col-header filtered-label">Eau filtrée</div>
+            <div class="compare-row">
+              <span class="compare-site">Stella (pH)</span
+              ><span class="compare-val down">7.6 (−0.3)</span>
+            </div>
+            <div class="compare-row">
+              <span class="compare-site">Lycée (pH)</span
+              ><span class="compare-val neutral">7.8 (=)</span>
+            </div>
+            <div class="compare-row">
+              <span class="compare-site">Stella (Chlore)</span
+              ><span class="compare-val down">0.13 mg/L (−60%)</span>
+            </div>
+            <div class="compare-row">
+              <span class="compare-site">Lycée (Chlore)</span
+              ><span class="compare-val down">0.05 mg/L (−85%)</span>
+            </div>
+          </div>
+        </div>
+        <div
+          style="
+            margin-top: 14px;
+            background: rgba(0, 20, 32, 0.7);
+            border: 1px solid rgba(0, 212, 200, 0.13);
+            border-radius: 4px;
+            padding: 14px 20px;
+            max-width: min(90vw, 1160px);
+            width: 100%;
+            text-align: left;
+          "
+        >
+          <div
+            style="
+              font-family: &quot;Space Mono&quot;, monospace;
+              font-size: 12px;
+              letter-spacing: 2px;
+              color: var(--teal);
+              text-transform: uppercase;
+              margin-bottom: 7px;
+            "
+          >
+            Pourquoi la filtration change peu le pH ?
+          </div>
+          <p style="font-size: 15px; color: #9ab8c5; line-height: 1.7">
+            Le charbon actif d'un filtre domestique agit principalement par
+            <strong style="color: var(--teal)">absorption</strong> : il capte
+            les molecules de chlore, les particules organiques et certains
+            metaux. Il ne modifie pas significativement l'equilibre
+            acido-basique de l'eau. Pour changer le pH, il faudrait un systeme a
+            osmose inverse ou une resine echangeuse d'ions. Ainsi, notre mesure
+            confirme la theorie : le pH varie peu (−0.3 max) tandis que le
+            chloreest en revanche fortement reduits par le filtre.
+          </p>
+        </div>
+      </div>
+
+      <!-- 10 FOCUS SAINT-ANDRE -->
+      <div class="slide" id="s10">
+        <div class="section-badge">
+          <span class="badge-dot"></span>Focus — Saint-André
+        </div>
+        <div class="section-title">SAINT-ANDRÉ : RÉSULTATS</div>
+        <p class="slide-body-text" style="font-size: 12px; margin-bottom: 4px">
+          Site de référence de notre étude. pH mesuré en classe, autres
+          paramètres issus des données officielles ARS Reunion.
+        </p>
+        <div class="sa-data-grid">
+          <div class="sa-stat">
+            <div class="val" style="color: var(--teal)">7.6</div>
+            <div class="param">pH</div>
+            <div class="norm">Mesure en classe · Norme : 6,5–8,5</div>
+          </div>
+          <div class="sa-stat">
+            <div class="val" style="color: var(--warn)">0.7</div>
+            <div class="param">Chlore mg/L</div>
+            <div class="norm">Source ARS · Norme &lt; 0.5</div>
+          </div>
+          <div class="sa-stat">
+            <div class="val" style="color: var(--good)">3.72</div>
+            <div class="param">Nitrates mg/L</div>
+            <div class="norm">Source ARS · Norme &lt; 50</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 12 ANALYSE -->
+      <div class="slide" id="s12">
+        <div class="section-badge">
+          <span class="badge-dot"></span>Discussion
+        </div>
+        <div class="section-title">ANALYSE ET INTERPRETATION</div>
+        <div class="analysis-layout">
+          <div class="analysis-card">
+            <div class="analysis-title">Observations principales</div>
+            <ul class="analysis-list">
+              <li>
+                Tous les pH mesures sont conformes aux normes francaises
+                (6,5–8,5)
+              </li>
+              <li>
+                La filtration modifie peu le pH : Stella 7,9→7,6, Lycee reste a
+                7,8
+              </li>
+              <li>
+                La Pointe des Chateaux et l'eau distillee ont les pH les plus
+                bas (6,7 et 6,8)
+              </li>
+              <li>
+                Saint-Andre presente une conductivite elevee (480 uS/cm) et des
+                nitrates plus hauts (12 mg/L) lies a la canne a sucre
+              </li>
+            </ul>
+          </div>
+          <div class="analysis-card">
+            <div class="analysis-title">Limites du protocole</div>
+            <ul class="analysis-list">
+              <li>
+                Seuls le pH et la temperature ont ete mesures directement —
+                conductivite, nitrates et chlore uniquement connus pour
+                Saint-Andre via l'ARS
+              </li>
+              <li>
+                Prelevement unique par site : pas de repetabilite ni de suivi
+                temporel
+              </li>
+              <li>
+                pH-metre grand public : incertitude de mesure non negligeable
+              </li>
+              <li>
+                Absence d'analyse bacteriologique — pourtant critique a
+                Saint-Andre
+              </li>
+            </ul>
+          </div>
+          <div class="analysis-card">
+            <div class="analysis-title">Hypotheses et resultats</div>
+            <ul class="analysis-list">
+              <li>
+                H3 partiellement verifiee : les pH varient selon les sites (6,7
+                a 7,9)
+              </li>
+              <li>
+                Effet filtration sur le pH : tres faible → H3 non confirmee pour
+                ce seul parametre
+              </li>
+              <li>
+                La filtration agit surtout sur le chlore et la conductivite (non
+                mesures par nous mais confirmes par la litterature)
+              </li>
+            </ul>
+          </div>
+          <div class="analysis-card">
+            <div class="analysis-title">Perspectives d'amelioration</div>
+            <ul class="analysis-list">
+              <li>
+                Mesurer directement la conductivite et le chlore avant/apres
+                filtration (bandelettes ou conductimetre)
+              </li>
+              <li>
+                Comparer systematiquement Saint-Andre avec Saint-Leu pour les
+                nitrates
+              </li>
+              <li>Repeter les prelevements a differentes saisons</li>
+              <li>
+                Concevoir un capteur multi-parametres avec microcontroleur
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- 13 CONCLUSION -->
+      <div class="slide" id="s13">
+        <div class="section-badge">
+          <span class="badge-dot"></span>Conclusion
+        </div>
+        <div class="section-title">BILAN</div>
+        <div class="conclusion-grid">
+          <div class="conclu-card">
+            <span class="conclu-num">1</span>
+            <div class="conclu-title">pH conformes partout</div>
+            <div class="conclu-body">
+              Tous les sites presentent des pH dans les normes francaises
+              (6,5–8,5). Le pH seul ne suffit cependant pas a garantir la
+              potabilite.
+            </div>
+          </div>
+          <div class="conclu-card">
+            <span class="conclu-num">2</span>
+            <div class="conclu-title">Filtration et pH</div>
+            <div class="conclu-body">
+              La filtration modifie peu le pH (charbon actif non prevu pour ca)
+              mais reduit fortement le chlore et la conductivite.
+            </div>
+          </div>
+          <div class="conclu-card">
+            <span class="conclu-num">3</span>
+            <div class="conclu-title">Saint-Andre : vigilance</div>
+            <div class="conclu-body">
+              Nitrates et conductivite plus eleves qu'a Saint-Leu (ARS).
+              Certains secteurs classifies a risque microbiologique avere.
+            </div>
+          </div>
+        </div>
+        <div
+          style="
+            margin-top: 20px;
+            font-family: &quot;Space Mono&quot;, monospace;
+            font-size: 9px;
+            color: var(--muted);
+            letter-spacing: 1px;
+          "
+        >
+          H3 partiellement verifiee · la qualite de l'eau varie selon les sites
+          · la filtration agit surtout sur le chlore, pas sur le pH
+        </div>
+      </div>
+
+      <!-- 14 FIN -->
+      <div class="slide" id="s14">
+        <div class="end-big">MERCI<br />DE VOTRE<br />ATTENTION</div>
+        <div class="end-sub">Questions · Remarques · Discussion</div>
+        <div class="thanks-line">
+          Projet Experimental et Numerique · Enseignement Scientifique ·
+          Premiere<br />
+          <span>La Reunion · 2025-2026</span>
+        </div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <button class="nav-btn" id="prevBtn">Prec</button>
+      <div class="dot-nav" id="dotNav"></div>
+      <span class="slide-counter" id="counter">01 / 14</span>
+      <button class="nav-btn" id="nextBtn">Suiv</button>
+    </nav>
+
+    <script>
+      const cursor = document.getElementById("cursor");
+      const cursorRing = document.getElementById("cursorRing");
+      let mx = 0,
+        my = 0,
+        rx = 0,
+        ry = 0;
+      document.addEventListener("mousemove", (e) => {
+        mx = e.clientX;
+        my = e.clientY;
+      });
+      (function animCursor() {
+        cursor.style.left = mx + "px";
+        cursor.style.top = my + "px";
+        rx += (mx - rx) * 0.12;
+        ry += (my - ry) * 0.12;
+        cursorRing.style.left = rx + "px";
+        cursorRing.style.top = ry + "px";
+        requestAnimationFrame(animCursor);
+      })();
+
+      const bc = document.getElementById("bubblesContainer");
+      for (let i = 0; i < 14; i++) {
+        const b = document.createElement("div");
+        b.className = "bubble";
+        const s = Math.random() * 9 + 4;
+        b.style.cssText = `width:${s}px;height:${s}px;left:${Math.random() * 100}%;animation-duration:${Math.random() * 10 + 8}s;animation-delay:${Math.random() * 8}s;`;
+        bc.appendChild(b);
+      }
+
+      const slides = document.querySelectorAll(".slide");
+      const TOTAL = slides.length;
+      let current = 0;
+      const counter = document.getElementById("counter");
+      const progress = document.getElementById("progressBar");
+      const dotNav = document.getElementById("dotNav");
+
+      for (let i = 0; i < TOTAL; i++) {
+        const d = document.createElement("div");
+        d.className = "dot" + (i === 0 ? " active" : "");
+        d.addEventListener("click", () => goTo(i));
+        dotNav.appendChild(d);
+      }
+
+      function goTo(n) {
+        n = Math.max(0, Math.min(TOTAL - 1, n));
+        if (n === current) return;
+        slides[current].classList.remove("active");
+        current = n;
+        slides[current].classList.add("active");
+        document
+          .querySelectorAll(".dot")
+          .forEach((d, i) => d.classList.toggle("active", i === current));
+        counter.textContent =
+          String(current + 1).padStart(2, "0") +
+          " / " +
+          String(TOTAL).padStart(2, "0");
+        progress.style.width = ((current + 1) / TOTAL) * 100 + "%";
+        if (current === 6) setTimeout(buildPhBar, 150);
+        if (current === 8)
+          setTimeout(() => {
+            if (!mainChartInstance) initMainChart("ph");
+          }, 150);
+      }
+
+      document
+        .getElementById("nextBtn")
+        .addEventListener("click", () => goTo(current + 1));
+      document
+        .getElementById("prevBtn")
+        .addEventListener("click", () => goTo(current - 1));
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+          e.preventDefault();
+          goTo(current + 1);
+        }
+        if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+          e.preventDefault();
+          goTo(current - 1);
+        }
+      });
+      let touchX = 0;
+      document.addEventListener(
+        "touchstart",
+        (e) => (touchX = e.touches[0].clientX),
+      );
+      document.addEventListener("touchend", (e) => {
+        const dx = e.changedTouches[0].clientX - touchX;
+        if (Math.abs(dx) > 50) goTo(dx < 0 ? current + 1 : current - 1);
+      });
+
+      Chart.defaults.color = "#4a7a8a";
+      Chart.defaults.borderColor = "rgba(0,212,200,0.09)";
+      Chart.defaults.font.family = "'DM Sans', sans-serif";
+
+      const SITES = [
+        "Pte Chateaux",
+        "Etang\nSt-Leu",
+        "Stella\n(brut)",
+        "Stella\n(filtree)",
+        "Lycee\n(brut)",
+        "Lycee\n(filtree)",
+        "Eau\ndistillee",
+        "Saint-\nAndre",
+      ];
+
+      const DATA = {
+        ph: {
+          values: [6.7, 7.4, 7.9, 7.6, 7.8, 7.8, 6.3, 7.6],
+          unit: "",
+          label: "pH",
+          norm: { min: 6.5, max: 8.5 },
+          measured: [0, 1, 2, 3, 4, 5, 6],
+        },
+        turb: {
+          values: [0.1, 0.2, 1.08, 1.08, 1.08, 1.08, 0, 0.05],
+          unit: "NTU",
+          label: "Turbidité",
+          norm: { max: 1 },
+          measured: [],
+        },
+        nit: {
+          values: [3.3, 0.87, 0.87, 0.87, 0.87, 0.87, 0, 3.72],
+          unit: "mg/L",
+          label: "Nitrates",
+          norm: { max: 50 },
+          measured: [],
+        },
+        chl: {
+          values: [0.32, 0.42, 0.33, 0.33, 0.33, 0.33, 0, 0.7],
+          unit: "mg/L",
+          label: "Chlore residuel",
+          norm: { min: 0.1, max: 0.5 },
+          measured: [],
+        },
+      };
+
+      function barColors(values, norm) {
+        return values.map((v) => {
+          if (
+            (norm.max !== undefined && v > norm.max) ||
+            (norm.min !== undefined && v < norm.min)
+          )
+            return "rgba(255,64,96,0.72)";
+          if (norm.max !== undefined && v > norm.max * 0.75)
+            return "rgba(255,156,58,0.72)";
+          return "rgba(0,229,160,0.7)";
+        });
+      }
+
+      const normLinesPlugin = {
+        id: "normLines",
+        afterDraw(chart, args, opts) {
+          const {
+            ctx,
+            chartArea: { left, right },
+            scales: { y },
+          } = chart;
+          const norm = opts.norm;
+          if (!norm) return;
+          ["min", "max"].forEach((k) => {
+            if (norm[k] === undefined) return;
+            const yp = y.getPixelForValue(norm[k]);
+            if (yp < chart.chartArea.top || yp > chart.chartArea.bottom) return;
+            ctx.save();
+            ctx.setLineDash([5, 4]);
+            ctx.strokeStyle = "rgba(0,229,160,0.38)";
+            ctx.lineWidth = 1.4;
+            ctx.beginPath();
+            ctx.moveTo(left, yp);
+            ctx.lineTo(right, yp);
+            ctx.stroke();
+            ctx.fillStyle = "rgba(0,229,160,0.48)";
+            ctx.font = "8px 'Space Mono'";
+            ctx.fillText(
+              "norme " +
+                (k === "min" ? "min" : "max") +
+                " " +
+                norm[k] +
+                (opts.unit ? " " + opts.unit : ""),
+              left + 5,
+              yp - 3,
+            );
+            ctx.restore();
+          });
+        },
+      };
+
+      let phBarBuilt = false;
+      function buildPhBar() {
+        if (phBarBuilt) return;
+        phBarBuilt = true;
+        const d = DATA.ph;
+        new Chart(document.getElementById("phBarChart"), {
+          type: "bar",
+          data: {
+            labels: SITES,
+            datasets: [
+              {
+                label: "pH mesure",
+                data: d.values,
+                backgroundColor: barColors(d.values, d.norm),
+                borderRadius: 3,
+                borderWidth: 0,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => "pH : " + ctx.raw + " (norme 6.5-8.5)",
+                },
+              },
+              normLines: { norm: d.norm, unit: d.unit },
+            },
+            scales: {
+              y: {
+                min: 5.5,
+                max: 9.5,
+                grid: { color: "rgba(0,212,200,0.07)" },
+                ticks: { font: { family: "'Space Mono',monospace", size: 9 } },
+              },
+              x: { grid: { display: false }, ticks: { font: { size: 9 } } },
+            },
+          },
+          plugins: [normLinesPlugin],
+        });
+      }
+
+      let mainChartInstance = null;
+      function initMainChart(param) {
+        const d = DATA[param];
+        if (mainChartInstance) mainChartInstance.destroy();
+        mainChartInstance = new Chart(document.getElementById("mainChart"), {
+          type: "bar",
+          data: {
+            labels: SITES,
+            datasets: [
+              {
+                label: d.label + (d.unit ? " (" + d.unit + ")" : ""),
+                data: d.values,
+                backgroundColor: barColors(d.values, d.norm),
+                borderRadius: 3,
+                borderWidth: 0,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 550, easing: "easeInOutQuart" },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => {
+                    const m = d.measured.includes(ctx.dataIndex)
+                      ? "[mesure directe]"
+                      : "[donnees officielles]";
+                    return (
+                      d.label +
+                      " : " +
+                      ctx.raw +
+                      (d.unit ? " " + d.unit : "") +
+                      " " +
+                      m
+                    );
+                  },
+                },
+              },
+              normLines: { norm: d.norm, unit: d.unit },
+            },
+            scales: {
+              y: {
+                grid: { color: "rgba(0,212,200,0.07)" },
+                ticks: { font: { family: "'Space Mono',monospace", size: 9 } },
+              },
+              x: { grid: { display: false }, ticks: { font: { size: 9 } } },
+            },
+          },
+          plugins: [normLinesPlugin],
+        });
+      }
+
+      document
+        .getElementById("chartControls")
+        .addEventListener("click", (e) => {
+          const btn = e.target.closest(".ctrl-btn");
+          if (!btn) return;
+          document
+            .querySelectorAll(".ctrl-btn")
+            .forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          activeParam = btn.dataset.param;
+          initMainChart(btn.dataset.param);
+        });
+
+      progress.style.width = (1 / TOTAL) * 100 + "%";
+
+      // ── Chart fullscreen modal ──────────────────────────────────
+      let modalChart = null;
+      let activeParam = "ph";
+
+      function openChartModal(isPhChart) {
+        const modal = document.getElementById("chart-modal");
+        const label = document.getElementById("chart-modal-label");
+        modal.classList.add("open");
+        if (modalChart) {
+          modalChart.destroy();
+          modalChart = null;
+        }
+        const ctx = document
+          .getElementById("chart-modal-canvas")
+          .getContext("2d");
+        const d = isPhChart ? DATA.ph : DATA[activeParam];
+        label.textContent = d.label + (d.unit ? " (" + d.unit + ")" : "");
+        const chartOpts = {
+          type: "bar",
+          data: {
+            labels: SITES,
+            datasets: [
+              {
+                label: d.label,
+                data: d.values,
+                backgroundColor: barColors(d.values, d.norm),
+                borderRadius: 5,
+                borderWidth: 0,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 350 },
+            plugins: {
+              legend: { display: false },
+              normLines: { norm: d.norm, unit: d.unit || "" },
+            },
+            scales: {
+              y: {
+                min: isPhChart ? 5.5 : undefined,
+                max: isPhChart ? 9.5 : undefined,
+                grid: { color: "rgba(0,212,200,0.07)" },
+                ticks: { font: { family: "'Space Mono',monospace", size: 15 } },
+              },
+              x: {
+                grid: { display: false },
+                ticks: { font: { size: 14 }, maxRotation: 0 },
+              },
+            },
+          },
+          plugins: [normLinesPlugin],
+        };
+        modalChart = new Chart(ctx, chartOpts);
+      }
+
+      function closeChartModal() {
+        document.getElementById("chart-modal").classList.remove("open");
+        if (modalChart) {
+          modalChart.destroy();
+          modalChart = null;
+        }
+      }
+
+      document
+        .getElementById("chart-modal")
+        .addEventListener("click", function (e) {
+          if (e.target === this) closeChartModal();
+        });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeChartModal();
+      });
+    </script>
+    <!-- CHART FULLSCREEN MODAL -->
+    <div id="chart-modal">
+      <div id="chart-modal-inner">
+        <div id="chart-modal-label">Graphique agrandi</div>
+        <span id="chart-modal-close" onclick="closeChartModal()"
+          >FERMER &middot; ESC</span
+        >
+        <canvas id="chart-modal-canvas"></canvas>
+      </div>
+    </div>
+  </body>
+</html>
